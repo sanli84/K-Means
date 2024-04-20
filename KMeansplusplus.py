@@ -240,7 +240,7 @@ def silhouette(dataset, clusters, distMatrix):
 def plot_silhouttee(clusteringSilhouette):
     plt.bar(range(len(clusteringSilhouette)), list(clusteringSilhouette.values()), align='center')
     plt.xticks(range(len(clusteringSilhouette)), list(clusteringSilhouette.keys()))
-    plt.title("K-Means", fontsize=16)
+    plt.title("KMeansplusplus", fontsize=16)
     plt.xlabel('Number of clusters', fontsize=14)
     plt.ylabel('Silhouette coefficient', fontsize=14)
     plt.show()

@@ -134,6 +134,10 @@ def create_clusters(labels):
 # output: labels array for all datapoints
 def BisectingKMeans(dataset, k):
 
+    # if there is only one cluster, all datapoints are in one cluster
+    if k == 1:
+        return np.ones(len(dataset))
+
     clusters = []
     # Initialize the entire data set as a cluster
     clusters.append(dataset)
@@ -232,9 +236,11 @@ def silhouetteCoefficient(dataset, clusters, distMatrix):
     # Compute the number of objects in the dataset
     N = len(dataset)
 
+    # use all() function to check if all elements in clusters are in one cluster
     # according to the definition of silhouette Coefficient,
     # when cluster number equals to 1, silhouette Coefficient equals to 0
-    if N == 1:
+    all_ones = np.all(clusters == 1)
+    if all_ones:
         return 0
 
     silhouette = [0 for i in range(N)]
@@ -277,7 +283,7 @@ def silhouette(dataset, clusters, distMatrix):
 def plot_silhouttee(clusteringSilhouette):
     plt.bar(range(len(clusteringSilhouette)), list(clusteringSilhouette.values()), align='center')
     plt.xticks(range(len(clusteringSilhouette)), list(clusteringSilhouette.keys()))
-    plt.title("K-Means", fontsize=16)
+    plt.title("BisectingKMeans", fontsize=16)
     plt.xlabel('Number of clusters', fontsize=14)
     plt.ylabel('Silhouette coefficient', fontsize=14)
     plt.show()
