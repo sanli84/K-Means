@@ -1,15 +1,14 @@
 import math
-
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
-import random
 
 
+# function of generating synthetic dataset
+# input: dataset file
+# output: synthetic dataset with same size as the original dataset
 def generateSyntheticData(fname):
-
     try:
-        features = []
+        features = []  # create feature matrix
 
         with open(fname) as F:
             next(F)  # skip the first line with feature names
@@ -18,20 +17,21 @@ def generateSyntheticData(fname):
                 features.append(np.array(p[1:], dtype=float))
 
         features = np.array(features)
-        N = len(features)
-        # 如果文件中只有一个数据点，则返回 None
+
+        # If the number of datapoints in the file is less than 2, return None
         if len(features) < 2:
             return None
 
+        # computing column means
         column_means = np.mean(features, axis=0)
 
-        # 生成协方差矩阵
+        # Generate covariance matrix
         cov_matrix = np.cov(features, rowvar=False)
 
-        # 生成数据集
+        # Generate  synthetic data set
         np.random.seed(12)
+        N = len(features)
         dataset = np.random.multivariate_normal(column_means, cov_matrix, size=N)
-        print(dataset)
         return dataset
 
     except FileNotFoundError:
@@ -45,112 +45,115 @@ def generateSyntheticData(fname):
         return None
 
 
-# print(dataset)
-
-# 计算两数据点之间的距离
+# function of computing distance between two data points
+# input: two data points
+# output: float distance between two points
 def ComputeDistance(x, y):
     # Compute the Euclidean distance between x and y
     return np.linalg.norm(x - y)
 
 
-# 初始随机选择数据集中的行索引为簇中心,
+# Initially randomly select the row index in the data set as the cluster centroids
+# input: dataset, number of clusters
+# output: centroids
 def initialSelection(dataset, k):
 
-    # 设置随机种子为固定值12
+    # Set the random seed to a fixed value of 12
     np.random.seed(12)
-    centroids_idx = np.random.choice(len(dataset), k, replace=False)
-    prev_centroids = dataset[centroids_idx]
+    centroids_idx = np.random.choice(len(dataset), k, replace=False)  # choose random row index from dataset
+    prev_centroids = dataset[centroids_idx]  # get the datapoint of the index
     return prev_centroids
 
-# 初始簇中心
-# centroids = initialSelection(dataset, 2)
-# print(centroids)
-# print("长度为 ", len(dataset[0]))
-# print("长度为 ", len(centroids[0]))
 
+# function of assigning cluster ID to each datapoints
+# input: dataset, current centroids
+# output: arrays of labels for all datapoints
 def assignClusterIds(dataset, centroids):
 
-    # 初始化一个空的距离矩阵，形状为 (数据点数量, 簇心数量),代表各数据点到各簇心的距离
+    # Initialize an empty distance matrix with the shape of (number of data points, number of centroids),
+    # representing the distance from each data point to each centroid.
     distances_matrix = np.zeros((dataset.shape[0], centroids.shape[0]))
-    # 计算每个数据点到每个簇心的距离
-    for i in range(dataset.shape[0]):  # 遍历每个数据点
-        for j in range(centroids.shape[0]):  # 遍历每个簇心
+    # Calculate the distance from each data point to each centroid
+    for i in range(dataset.shape[0]):  # Loop through each data point
+        for j in range(centroids.shape[0]):  # Loop through each centroids
             distances_matrix[i, j] = ComputeDistance(dataset[i], centroids[j])
 
-    # 获取每行最小值所对应的列索引，即每个数据点所属的簇
+    # Get the column index corresponding to the minimum value of each row,
+    # that is, the cluster to which each data point belongs
     labels = np.argmin(distances_matrix, axis=1)
 
     return labels
 
 
+# function of computing the representatives for each cluster
+# input: dataset matrix, centroids array, labels array, number of clusters
+# output: updated centroids for each cluster
 def computeClusterRepresentatives(dataset, centroids, labels, k):
 
     for i in range(k):
         # Find points belonging to the i-th cluster
         cluster_points = dataset[labels == i]
         # Calculate the mean of the points in the cluster as the new centroid
+        # The average value of each point in the cluster is the centroid
         if len(cluster_points) > 0:
             centroids[i] = np.mean(cluster_points, axis=0)
 
     return centroids
 
 
+# KMeans clustering function using synthetic dataset
+# input: dataset matrix, number of target clusters, max iteration times
+# output: labels array for all datapoints
 def KMeansSynthetic(dataset, k, maxIter=10):
-
     labels = None
+    # get centroids in last iteration
     prev_centroids = initialSelection(dataset, k)
-    # print("初始簇心：")
-    # print(prev_centroids)
     centroids = None
 
     for _ in range(maxIter):
 
         if centroids is None:
+            # if there is no centroid in the first iteration, choose one randomly
             centroids = initialSelection(dataset, k)
 
-        # print("初始簇心：")
-        # print(prev_centroids)
+        # assign cluster ID to each datapoint
         labels = assignClusterIds(dataset, centroids)
+        # computing centroids according to updated labels
         centroids = computeClusterRepresentatives(dataset, centroids, labels, k)
-        # print("更新后簇心：")
-        # print(centroids)
 
         if np.array_equal(prev_centroids, centroids):
-            # print("最后初始簇心：")
-            # print(prev_centroids)
-            # print("最后更新簇心：")
-            # print(centroids)
             break
         else:
+            # updated centroids for next iteration comparison
             prev_centroids = centroids
-        # prev_centroids = centroids
 
     return labels
 
 
+# function of converting labels array to cluster array
+# input: labels array
+# output: cluster array
 def create_clusters(labels):
     clusters_dict = {}
 
-    # 遍历 labels 数组
+    # loop through labels array
     for i, cluster_id in enumerate(labels):
         if cluster_id not in clusters_dict:
-            # 如果当前簇不存在于字典中，则创建一个新的列表
+            # If the current cluster does not exist in the dictionary, create a new list
             clusters_dict[cluster_id] = [i]
         else:
-            # 如果当前簇已经存在于字典中，则将当前索引添加到相应的列表中
+            # If the current cluster already exists in the dictionary, add the current index to the corresponding list
             clusters_dict[cluster_id].append(i)
 
-    # 将字典的值转换成列表
+    # Convert dictionary values into lists
     clusters = list(clusters_dict.values())
 
     return clusters
 
 
-# labels = KMeans(dataset, 5)
-# clusters = create_clusters(labels)
-# print(labels)
-# print(clusters)
-
+# function of creating the distance matrix of all datapoints in the dataset
+# input: dataset matrix, distance computing parameters
+# output: distance matrix
 def distanceMatrix(dataset, dist=ComputeDistance):
 
     # Compute the number of objects in the dataset
@@ -168,9 +171,17 @@ def distanceMatrix(dataset, dist=ComputeDistance):
 
     return distMatrix
 
+# function of computing silhouette Coefficient
+# reuse of week 7 silhouetteCoefficient function
+# input: dataset matrix, clusters array, distance matrix
 def silhouetteCoefficient(dataset, clusters, distMatrix):
     # Compute the number of objects in the dataset
     N = len(dataset)
+
+    # according to the definition of silhouette Coefficient,
+    # when cluster number equals to 1, silhouette Coefficient equals to 0
+    if N == 1:
+        return 0
 
     silhouette = [0 for i in range(N)]
     a = [0 for i in range(N)]
@@ -192,15 +203,26 @@ def silhouetteCoefficient(dataset, clusters, distMatrix):
                     b[i] = tempb
 
     for i in range(N):
-        silhouette[i] = 0 if a[i] == 0 else (b[i] - a[i]) / np.max([a[i], b[i]])
+        if np.isnan(a[i]) or np.isnan(b[i]) or np.isinf(a[i]) or np.isinf(b[i]):
+            silhouette[i] = 0
+        elif (a[i] == 0) or (b[i] == 0):
+            silhouette[i] = 0
+        else:
+            silhouette[i] = (b[i] - a[i]) / np.max([a[i], b[i]])
 
     return silhouette
 
 
+# reuse of silhouette function in week 7
+# input: dataset matrix, clusters array, distance matrix
+# output: silhouette Coefficient score
 def silhouette(dataset, clusters, distMatrix):
     return np.mean(silhouetteCoefficient(dataset, clusters, distMatrix))
 
 
+# function of plotting bar chart of cluster number VS silhouette Coefficient
+# input: silhouette Coefficient array
+# output: barchart of cluster number VS silhouette Coefficient
 def plot_silhouttee(clusteringSilhouette):
     plt.bar(range(len(clusteringSilhouette)), list(clusteringSilhouette.values()), align='center')
     plt.xticks(range(len(clusteringSilhouette)), list(clusteringSilhouette.keys()))
@@ -210,13 +232,16 @@ def plot_silhouttee(clusteringSilhouette):
     plt.show()
 
 
+# generate synthetic dataset
 dataset = generateSyntheticData("dataset")
 clusteringSilhouette = {}
 distMatrix = distanceMatrix(dataset)
 
-for i in range(2, 10):
-    labels = KMeansSynthetic(dataset, i)
-    clusters = create_clusters(labels)
+# loop througn from 1 cluster to 9 clusters
+for i in range(1, 10):
+    labels = KMeansSynthetic(dataset, i)  # get labels for the data points
+    clusters = create_clusters(labels)  # convert labels to clusters
     clusteringSilhouette[i] = silhouette(dataset, clusters, distMatrix)
 
 plot_silhouttee(clusteringSilhouette)
+plt.savefig('KMeansSynthetic.png')
